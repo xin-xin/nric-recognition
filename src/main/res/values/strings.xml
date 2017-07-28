@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">OCR</string>
+    <string name="instruction">Tap icon to scan IC</string>
+    <string name="TVdob">DOB:</string>
+    <string name="TVname">Name:</string>
+    <string name="TVnric">NRIC:</string>
+    <string name="TVaddress">Address:</string>
+    <string name="camera">camera</string>
+</resources>

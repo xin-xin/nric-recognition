@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <android.support.v7.widget.Toolbar xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorPrimary"
+        android:minHeight="?android:attr/actionBarSize"
+        android:title="@string/app_name"
+        app:titleTextColor="@color/colorTitle" />
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/toolbar"
+        android:orientation="vertical"
+        tools:context=".MainActivity">
+
+        <RelativeLayout
+            android:id="@+id/relLayout"
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            android:gravity="center">
+
+            <com.github.chrisbanes.photoview.PhotoView
+                android:id="@+id/imageView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/camera"
+                android:scaleType="fitCenter" />
+
+            <ImageView
+                android:id="@+id/imgOverlay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:adjustViewBounds="true"
+                android:alpha="1"
+                android:scaleType="fitCenter" />
+
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/relLayout"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="10dp"
+            android:text="Load image"
+            android:textSize="20sp" />
+
+        <View
+            android:id="@+id/view"
+            android:layout_width="match_parent"
+            android:layout_height="5dp"
+            android:layout_below="@+id/textView"
+            android:background="@android:color/black" />
+
+
+        <TextView
+            android:id="@+id/name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/textView"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/TVname"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/nameData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@+id/name"
+            android:layout_marginStart="10dp"
+            android:layout_toEndOf="@+id/name"
+            android:focusable="false"
+            android:inputType="textShortMessage"
+            android:text=""
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/NRIC"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@+id/name"
+            android:layout_below="@+id/name"
+            android:text="@string/TVnric"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/NRICData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@+id/NRIC"
+            android:layout_marginStart="10dp"
+            android:layout_toEndOf="@+id/NRIC"
+            android:focusable="false"
+            android:inputType="textShortMessage"
+            android:text=""
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/dob"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@+id/name"
+            android:layout_below="@+id/NRIC"
+            android:text="@string/TVdob"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/dobData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@+id/dob"
+            android:layout_marginStart="10dp"
+            android:layout_toEndOf="@+id/dob"
+            android:focusable="false"
+            android:inputType="textShortMessage"
+            android:text=""
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/address"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@+id/name"
+            android:layout_below="@+id/dob"
+            android:text="@string/TVaddress"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/addressData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@+id/address"
+            android:layout_marginStart="10dp"
+            android:layout_toEndOf="@+id/address"
+            android:focusable="false"
+            android:text=""
+            android:textSize="20sp" />
+
+    </RelativeLayout>
+</RelativeLayout>
