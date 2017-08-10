@@ -8,13 +8,16 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -51,7 +54,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements View.OnTouchListener, View.OnDragListener, Toolbar.OnMenuItemClickListener, com.github.chrisbanes.photoview.OnMatrixChangedListener {
+public class MainActivity extends AppCompatActivity implements TextView.OnTouchListener, EditText.OnDragListener, Toolbar.OnMenuItemClickListener, com.github.chrisbanes.photoview.OnMatrixChangedListener, com.github.chrisbanes.photoview.OnViewDragListener {
     private Toolbar toolbar;
     private EditText etName, etNRIC, etDOB, etAddress;
     private TextView TVScanned;
@@ -61,13 +64,14 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     ProgressDialog progressCopy; //progressOcr
     TessBaseAPI baseApi;
     private Pix pix;
-    private Bitmap bitmap, temp;
+    private Bitmap bitmap;
     private Uri outputFileUri;
-    private int startX = 0, startY = 0, endX = 0, endY = 0;
     AsyncTask<Void, Void, Void> copy = new copyTask();
     //AsyncTask<Bitmap, Void, Void> ocr = new ocrTask();
     private static final String DATA_PATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test.icscanner/";
     private static final int PERMREQCODE = 1;
+    private int OMCHeight = 0, OMCWidth = 0, OMCStartX = 0, OMCStartY = 0, OMCEndX = 0, OMCEndY = 0;
+    private int ODSx = 0, ODSy = 0, ODEx = 0, ODEy = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +81,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     PERMREQCODE);
         }
-        //TODO remove the ocr progress dialog, check imaging(otsu algo)
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -98,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         etDOB.setOnDragListener(this);
         etAddress.setOnDragListener(this);
         img.setOnMatrixChangeListener(this);
+        img.setOnViewDragListener(this);
         img.setMaximumScale(100f);
         bitmap = BitmapFactory.decodeResource(this.getResources(), R.drawable.blank);
         img.setImageBitmap(bitmap);
@@ -111,42 +115,24 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         copy.execute();
     }
 
-    private Bitmap drawBox(Bitmap srcBitmap) {
-        int borderWidth = 50;
-        int newStartX = 0;
-        int newStartY = (int) (srcBitmap.getHeight() * 0.4);
-        int newEndX = srcBitmap.getWidth();
-        int newEndY = (int) (srcBitmap.getHeight() * 0.6);
-        Bitmap dstBitmap = Bitmap.createBitmap(
-                srcBitmap.getWidth(),
-                srcBitmap.getHeight(),
-                Bitmap.Config.ARGB_8888
-        );
-        Canvas canvas = new Canvas(dstBitmap);
-        Paint paint = new Paint();
-        paint.setColor(Color.argb(255, 32, 178, 170));
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(borderWidth);
-        paint.setAntiAlias(true);
-        //left, top, right, bottom
-        Rect rect = new Rect(newStartX, newStartY, newEndX, newEndY);
-        //canvas.drawBitmap(srcBitmap, 0, 0, null);
-        canvas.drawRect(rect, paint);
-        return dstBitmap;
+    @Override
+    public void onDrags(float sX, float sY, float eX, float eY) {
+        ODSx = (int) sX;
+        ODSy = (int) sY;
+        ODEx = (int) eX;
+        ODEy = (int) eY;
+        imgOverlay.setImageBitmap(drawBox(bitmap, (int) sX, (int) sY, (int) eX, (int) eY));
     }
 
     @Override
     public void onMatrixChanged(RectF rect) {
-        startX = (int) Math.abs(rect.left);
-        startY = (int) Math.abs(rect.top);
-        endX = startX + img.getWidth();
-        endY = startY + img.getHeight();
-        double width, height;
-        height = rect.bottom - rect.top;
-        width = rect.right - rect.left;
-        temp = zoomCrop(bitmap, height, width);
+        OMCStartX = (int) Math.abs(rect.left);
+        OMCStartY = (int) Math.abs(rect.top);
+        OMCEndX = OMCStartX + img.getWidth();
+        OMCEndY = OMCStartY + img.getHeight();
+        OMCHeight = (int) (rect.bottom - rect.top);
+        OMCWidth = (int) (rect.right - rect.left);
     }
-
 
     @Override
     public boolean onDrag(View v, DragEvent event) {
@@ -166,13 +152,20 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         switch (v.getId()) {
             case R.id.textView:
                 if (event.getAction() == MotionEvent.ACTION_DOWN && noOfTouches == 1) {
-//                    progressOcr.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-//                    progressOcr.setIndeterminate(true);
-//                    progressOcr.setCancelable(false);
-//                    progressOcr.setTitle("OCR");
-//                    progressOcr.setMessage("Extracting text, please wait");
-//                    progressOcr.show();
-                    new ocrTask().execute(temp);
+                    /*progressOcr.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    progressOcr.setIndeterminate(true);
+                    progressOcr.setCancelable(false);
+                    progressOcr.setTitle("OCR");
+                    progressOcr.setMessage("Extracting text, please wait");
+                    progressOcr.show();*/
+                    Bitmap crop = zoomCrop(bitmap, OMCHeight, OMCWidth, OMCStartX, OMCStartY, OMCEndX, OMCEndY);
+                    crop = zoomCrop(crop, img.getHeight(), img.getWidth(), ODSx, ODSy, ODEx, ODEy);
+                    pix = com.googlecode.leptonica.android.ReadFile.readBitmap(crop);
+                    OtsuThresholder otsuThresholder = new OtsuThresholder();
+                    int threshold = otsuThresholder.doThreshold(pix.getData());
+                    threshold += 15;
+                    crop = com.googlecode.leptonica.android.WriteFile.writeBitmap(GrayQuant.pixThresholdToBinary(pix, threshold));
+                    new ocrTask().execute(crop);
                     View.DragShadowBuilder shadowBuilder = new View.DragShadowBuilder(v);
                     v.startDrag(null, shadowBuilder, v, 0);
                     return true;
@@ -230,28 +223,47 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         } catch (FileNotFoundException e) {
         }
         BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 16;
+        options.inSampleSize = 32;
         bitmap = BitmapFactory.decodeStream(image_stream);
-        pix = com.googlecode.leptonica.android.ReadFile.readBitmap(bitmap);
-        OtsuThresholder otsuThresholder = new OtsuThresholder();
-        int threshold = otsuThresholder.doThreshold(pix.getData());
-        threshold += 15;
-        bitmap = com.googlecode.leptonica.android.WriteFile.writeBitmap(GrayQuant.pixThresholdToBinary(pix, threshold));
+        try {
+            ExifInterface exif = new ExifInterface(getRealPathFromURI(uri));
+            int exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            int rotate = 0;
+
+            switch (exifOrientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotate = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotate = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotate = 270;
+                    break;
+            }
+            if (rotate != 0) {
+                Matrix mtx = new Matrix();
+                mtx.preRotate(rotate);
+                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), mtx, false);
+            }
+            bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+        } catch (IOException e) {
+        }
         img.setImageBitmap(bitmap);
-        imgOverlay.setImageBitmap(drawBox(bitmap));
+        imgOverlay.setImageBitmap(drawBox(bitmap, 0, 0, 0, 0));
     }
 
-    private Bitmap zoomCrop(Bitmap srcBitmap, double height, double width) {
-        int newStartX = (int) ((double) startX * (srcBitmap.getWidth() / width));
-        int newStartY = (int) ((double) startY * (srcBitmap.getHeight() / height));
-        int newEndX = (int) ((double) endX * (srcBitmap.getWidth() / width));
-        int newEndY = (int) ((double) endY * (srcBitmap.getHeight() / height));
-        newStartY += ((newEndY - newStartY) * 0.4);
-        newEndY -= ((newEndY - newStartY) * 0.6);
-        if (newEndX > newStartX && newEndY > newStartY && newEndX < srcBitmap.getWidth() && newEndY < srcBitmap.getHeight()) {
-            srcBitmap = Bitmap.createBitmap(srcBitmap, newStartX, newStartY, newEndX - newStartX, newEndY - newStartY);
+    private String getRealPathFromURI(Uri contentURI) {
+        Cursor cursor = this.getContentResolver()
+                .query(contentURI, null, null, null, null);
+        if (cursor == null) { // Source is Dropbox or other similar local file
+            // path
+            return contentURI.getPath();
+        } else {
+            cursor.moveToFirst();
+            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+            return cursor.getString(idx);
         }
-        return srcBitmap;
     }
 
     private String recognizeText(Bitmap cropped) {
@@ -259,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         String textScanned;
         baseApi = new TessBaseAPI();
         baseApi.init(DATA_PATH, language, TessBaseAPI.OEM_TESSERACT_ONLY);
-        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-");
+        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#");
         baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_OSD);
         baseApi.setImage(cropped);
         textScanned = baseApi.getUTF8Text();
@@ -306,6 +318,66 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
     }
 
+    private void selectImage() {
+        final String fname = "img_" + System.currentTimeMillis() + ".jpg";
+        final File sdImageMainDirectory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), fname);
+        outputFileUri = Uri.fromFile(sdImageMainDirectory);
+        final List<Intent> cameraIntents = new ArrayList<Intent>();
+        final Intent captureIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+        final PackageManager packageManager = getPackageManager();
+        final List<ResolveInfo> listCam = packageManager.queryIntentActivities(captureIntent, 0);
+        for (ResolveInfo res : listCam) {
+            final String packageName = res.activityInfo.packageName;
+            final Intent intent = new Intent(captureIntent);
+            intent.setComponent(new ComponentName(res.activityInfo.packageName, res.activityInfo.name));
+            intent.setPackage(packageName);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
+            cameraIntents.add(intent);
+        }
+
+        final Intent galleryIntent = new Intent();
+        galleryIntent.setType("image/*");
+        galleryIntent.setAction(Intent.ACTION_PICK);
+        final Intent chooserIntent = Intent.createChooser(galleryIntent, "Select Source");
+        chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, cameraIntents.toArray(new Parcelable[cameraIntents.size()]));
+        startActivityForResult(chooserIntent, 1);
+    }
+
+    private Bitmap drawBox(Bitmap srcBitmap, int sX, int sY, int eX, int eY) {
+        sX = sX * srcBitmap.getWidth() / img.getWidth();
+        sY = sY * srcBitmap.getHeight() / img.getHeight();
+        eX = eX * srcBitmap.getWidth() / img.getWidth();
+        eY = eY * srcBitmap.getHeight() / img.getHeight();
+        int borderWidth = 25;
+        Bitmap dstBitmap = Bitmap.createBitmap(
+                srcBitmap.getWidth(),
+                srcBitmap.getHeight(),
+                Bitmap.Config.ARGB_8888
+        );
+        Canvas canvas = new Canvas(dstBitmap);
+        Paint paint = new Paint();
+        paint.setColor(Color.parseColor("#20B2AA"));
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(borderWidth);
+        paint.setAntiAlias(true);
+        Rect rect = new Rect(sX, sY, eX, eY);
+        //canvas.drawBitmap(srcBitmap, 0, 0, null);
+        canvas.drawRect(rect, paint);
+        return dstBitmap;
+
+    }
+
+    private Bitmap zoomCrop(Bitmap srcBitmap, double height, double width, int startX, int startY, int endX, int endY) {
+        int newStartX = (int) ((double) startX * (srcBitmap.getWidth() / width));
+        int newStartY = (int) ((double) startY * (srcBitmap.getHeight() / height));
+        int newEndX = (int) ((double) endX * (srcBitmap.getWidth() / width));
+        int newEndY = (int) ((double) endY * (srcBitmap.getHeight() / height));
+        if (newEndX > newStartX && newEndY > newStartY && newEndX < srcBitmap.getWidth() && newEndY < srcBitmap.getHeight()) {
+            srcBitmap = Bitmap.createBitmap(srcBitmap, newStartX, newStartY, newEndX - newStartX, newEndY - newStartY);
+        }
+        return srcBitmap;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
@@ -332,31 +404,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
             }
         }
-    }
-
-    private void selectImage() {
-        final String fname = "img_" + System.currentTimeMillis() + ".jpg";
-        final File sdImageMainDirectory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), fname);
-        outputFileUri = Uri.fromFile(sdImageMainDirectory);
-        final List<Intent> cameraIntents = new ArrayList<Intent>();
-        final Intent captureIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-        final PackageManager packageManager = getPackageManager();
-        final List<ResolveInfo> listCam = packageManager.queryIntentActivities(captureIntent, 0);
-        for (ResolveInfo res : listCam) {
-            final String packageName = res.activityInfo.packageName;
-            final Intent intent = new Intent(captureIntent);
-            intent.setComponent(new ComponentName(res.activityInfo.packageName, res.activityInfo.name));
-            intent.setPackage(packageName);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
-            cameraIntents.add(intent);
-        }
-
-        final Intent galleryIntent = new Intent();
-        galleryIntent.setType("image/*");
-        galleryIntent.setAction(Intent.ACTION_PICK);
-        final Intent chooserIntent = Intent.createChooser(galleryIntent, "Select Source");
-        chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, cameraIntents.toArray(new Parcelable[cameraIntents.size()]));
-        startActivityForResult(chooserIntent, 1);
     }
 
     @Override

@@ -1,0 +1,18 @@
+#Android generated
+bin
+gen
+
+#IntelliJ IDEA
+.idea
+*.iml
+*.ipr
+*.iws
+out
+local.properties
+
+#OSX
+.DS_Store
+
+#Gradle
+.gradle
+build

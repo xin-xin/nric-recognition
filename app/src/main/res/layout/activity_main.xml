@@ -35,7 +35,6 @@
                 android:layout_alignParentTop="true"
                 android:layout_centerHorizontal="true"
                 android:adjustViewBounds="true"
-                android:contentDescription="@string/camera"
                 android:scaleType="fitCenter" />
 
             <ImageView
