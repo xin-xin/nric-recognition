@@ -75,12 +75,23 @@ public class MainActivity extends AppCompatActivity implements TextView.OnTouchL
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //TODO check imaging, REGEX O to 0
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     PERMREQCODE);
+        } else {
+            //progressOcr = new ProgressDialog(this);
+            progressCopy = new ProgressDialog(MainActivity.this);
+            progressCopy.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            progressCopy.setIndeterminate(true);
+            progressCopy.setCancelable(false);
+            progressCopy.setTitle("Dictionaries");
+            progressCopy.setMessage("Copying dictionary files");
+            copy.execute();
         }
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -105,23 +116,15 @@ public class MainActivity extends AppCompatActivity implements TextView.OnTouchL
         img.setMaximumScale(100f);
         bitmap = BitmapFactory.decodeResource(this.getResources(), R.drawable.blank);
         img.setImageBitmap(bitmap);
-        //progressOcr = new ProgressDialog(this);
-        progressCopy = new ProgressDialog(MainActivity.this);
-        progressCopy.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        progressCopy.setIndeterminate(true);
-        progressCopy.setCancelable(false);
-        progressCopy.setTitle("Dictionaries");
-        progressCopy.setMessage("Copying dictionary files");
-        copy.execute();
     }
 
     @Override
-    public void onDrags(float sX, float sY, float eX, float eY) {
-        ODSx = (int) sX;
-        ODSy = (int) sY;
-        ODEx = (int) eX;
-        ODEy = (int) eY;
-        imgOverlay.setImageBitmap(drawBox(bitmap, (int) sX, (int) sY, (int) eX, (int) eY));
+    public void onDrags(float startX, float startY, float endX, float endY) {
+        ODSx = (int) startX;
+        ODSy = (int) startY;
+        ODEx = (int) endX;
+        ODEy = (int) endY;
+        imgOverlay.setImageBitmap(drawBox(bitmap, (int) startX, (int) startY, (int) endX, (int) endY));
     }
 
     @Override
@@ -182,7 +185,14 @@ public class MainActivity extends AppCompatActivity implements TextView.OnTouchL
             case PERMREQCODE:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    //Toast.makeText(getApplicationContext(), "Permission granted!", Toast.LENGTH_SHORT).show();
+                    //progressOcr = new ProgressDialog(this);
+                    progressCopy = new ProgressDialog(MainActivity.this);
+                    progressCopy.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    progressCopy.setIndeterminate(true);
+                    progressCopy.setCancelable(false);
+                    progressCopy.setTitle("Dictionaries");
+                    progressCopy.setMessage("Copying dictionary files");
+                    copy.execute();
 
                 } else {
                     if (ActivityCompat.shouldShowRequestPermissionRationale(this,
@@ -213,6 +223,34 @@ public class MainActivity extends AppCompatActivity implements TextView.OnTouchL
 
                 }
                 break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            if (requestCode == 1) {
+                final boolean isCamera;
+                if (data == null || data.getData() == null) {
+                    isCamera = true;
+                } else {
+                    final String action = data.getAction();
+                    if (action == null) {
+                        isCamera = false;
+                    } else {
+                        isCamera = action.equals(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                    }
+                }
+                Uri selectedImageUri;
+                if (isCamera) {
+                    selectedImageUri = outputFileUri;
+                    loadImage(selectedImageUri);
+
+                } else {
+                    selectedImageUri = data == null ? null : data.getData();
+                    loadImage(selectedImageUri);
+                }
+            }
         }
     }
 
@@ -376,34 +414,6 @@ public class MainActivity extends AppCompatActivity implements TextView.OnTouchL
             srcBitmap = Bitmap.createBitmap(srcBitmap, newStartX, newStartY, newEndX - newStartX, newEndY - newStartY);
         }
         return srcBitmap;
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            if (requestCode == 1) {
-                final boolean isCamera;
-                if (data == null || data.getData() == null) {
-                    isCamera = true;
-                } else {
-                    final String action = data.getAction();
-                    if (action == null) {
-                        isCamera = false;
-                    } else {
-                        isCamera = action.equals(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                    }
-                }
-                Uri selectedImageUri;
-                if (isCamera) {
-                    selectedImageUri = outputFileUri;
-                    loadImage(selectedImageUri);
-
-                } else {
-                    selectedImageUri = data == null ? null : data.getData();
-                    loadImage(selectedImageUri);
-                }
-            }
-        }
     }
 
     @Override

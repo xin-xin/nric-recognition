@@ -17,7 +17,7 @@ package com.github.chrisbanes.photoview;
 
 interface OnGestureListener {
 
-    void onDragT(float sX, float sY, float eX, float eY);
+    void onDragT(float startX, float startY, float endX, float endY);
 
     void onFling(float startX, float startY, float velocityX,
                  float velocityY);
