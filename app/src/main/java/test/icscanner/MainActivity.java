@@ -75,7 +75,6 @@ public class MainActivity extends AppCompatActivity implements TextView.OnTouchL
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        //TODO check imaging, REGEX O to 0
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
